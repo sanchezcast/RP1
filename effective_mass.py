@@ -14,7 +14,6 @@ from matplotlib import rc
 from numpy import diff
 
 
-
 z_reion=10
 
 with open('output_xe_new.txt') as f:
@@ -170,8 +169,35 @@ def probability(log_der, photon_frequency,chi_0,DP_mass):
     probability= np.pi*(DP_mass**2)*(chi_0**2)*(log_der)**(-1)*photon_frequency**(-1)
     return probability
 
+m_A=list(np.arange(10e-13,10e-9, (10e-9-10e-13)/1000))
+chi_0=list(np.arange(10e-7,10e-5, (10e-5-10e-7)/1000))
 
-        
+
+def takeclosest(mylist,number):
+    dist=[""]
+    for num in range(0,len(mylist)):
+        dist.append(abs(mylist[num]-number))
+    dist.pop(0)
+    return mylist[dist.index(min(dist))]
+    
+
+chi_0_constraint=[""]
+m_A_constraint=[""]
+
+for num in range(0,len(m_A)):
+    for num2 in range(1, len(chi_0)):
+        mass=takeclosest(cosmo_mass, m_A[num])
+        z=redshift[cosmo_mass.index(mass)]
+        prob=probability(log_derivative(z, dxdy[cosmo_mass.index(mass)]),2.73*8.61e-05,chi_0[num2],m_A[num])
+        if prob<10e-4:
+            chi_0_constraint.append(chi_0[num2])
+            m_A_constraint.append(m_A[num])
+        else:
+            pass
+
+
+
+
 
 
 
