@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 25 14:21:36 2021
+
+@author: sanchez
+"""
+
+
+import random
+import matplotlib.pyplot as plt
+import numpy as np
+import pylab
+from matplotlib import rc
+from numpy import diff
+
+z_reion=10
+
+with open('output_xe_new.txt') as f:
+    #Read the given file
+    data=[[float(x) for x in line.split()] for line in f]
+
+    redshift=['']
+    ioniz=['']
+for num in range(0,len(data)):
+    z,f=data[num]
+    if z > z_reion:
+            redshift.append(z)
+            ioniz.append(f)            
+    elif z_reion > z and z > z_reion-4:
+        redshift.append(z)
+        ioniz.append(1.07- 0.02*z)
+    else:
+        redshift.append(z)
+        ioniz.append(1.07)
+        
+ 
+redshift.pop(0)
+ioniz.pop(0)
+
+class CosmoMassCompute:
+    
+    def __init__(self,redshift,ionization,omega):
+        self.redshift=redshift
+        self.ionization=ionization
+        self.omega=omega
+        self.proton_density=np.zeros(len(self.redshift))
+        self.cosmological_mass_squared=np.zeros(len(self.redshift))
+        self.dlndz=np.zeros(len(self.redshift)-1)
+        self.probability=np.zeros(len(self.redshift)-1)
+        
+    def proton_density_function(self):
+        for num in range(0, len(self.redshift)):
+            self.proton_density[num]=(5.32e11*0.25*0.875*6.7e-10*(2.7*(1+self.redshift[num]))**3)
+        return self.proton_density
+   
+    def cosmological_mass_squared_function(self):
+        for num in range(0 ,len(self.redshift)):
+            self.cosmological_mass_squared[num]=(1.4e-21* (self.ionization[num] - (1-self.ionization[num])*7.3e-3 * (self.omega*(1+self.redshift[num]))**2)*self.proton_density[num]) 
+        return self.cosmological_mass_squared
+
+    def mass_derivative_function(self):
+        self.dlndz= diff(np.log(self.cosmological_mass_squared))/diff(self.redshift)
+        return self.dlndz 
+    
+    def probability_compute(self, m_A, epsilon):
+        H_0=9.38e-33
+        omega_lambda=0.7
+        omega_matter=0.3
+        omega_radiation=0.00005
+        for num in range(0, len(self.redshift)-1):
+            dzdt=H_0*(1+self.redshift[num])*(np.sqrt(omega_lambda+omega_matter*(1+self.redshift[num])**3+omega_radiation*(1+self.redshift[num])**4))
+            self.probability[num]=abs(np.pi * m_A**2 * epsilon**2 /(self.dlndz[num]*self.omega*dzdt))
+        return self.probability
+        
+    
+
+cosmo_mass_compute=CosmoMassCompute(redshift,ioniz,1*2.73*8.61e-05)
+cosmo_mass_compute.proton_density_function()
+cosmo_mass_squared=cosmo_mass_compute.cosmological_mass_squared_function()
+cosmo_mass=np.sqrt(cosmo_mass_compute.cosmological_mass_squared_function())
+cosmo_mass_derivative=cosmo_mass_compute.mass_derivative_function()   
+probability=cosmo_mass_compute.probability_compute(2e-12,2e10-5)
+   
+    
+effective_mass=plt.figure(2)
+plt.plot(redshift,cosmo_mass,'brown', label='Photon effective mass')  
+plt.xlabel('Redshift ', fontsize=18)
+plt.ylabel('$\omega/T$', fontsize=18)
+plt.yscale('log')
+plt.xscale('log')
+
+redshift.pop(0)
+effective_mass2=plt.figure(3)
+plt.plot(redshift,probability,'blue', label='Photon effective mass')  
+plt.xlabel('Redshift ', fontsize=18)
+plt.ylabel('$\omega/T$', fontsize=18)
+plt.yscale('log')
+plt.xscale('log')
